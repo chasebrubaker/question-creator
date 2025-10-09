@@ -65,6 +65,7 @@ def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def loading_bar(duration: int, console: Console, loading_text: str = "loading..."):    
+def loading_bar(duration: int, console: Console, loading_text: str = "loading..."):    
     with console.status(f"[bold green]{loading_text}", spinner="dots"):
         time.sleep(duration)
     
@@ -85,15 +86,30 @@ def get_document_path() -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def get_document_path() -> Path:
+    system = platform.system().lower()
+    if system == 'windows':
+        base = Path(os.environ.get("USERPROFILE", "")) / "Documents"
+    elif system == 'darwin':  # macOS
+        base = Path.home() / "Documents"
+    else:  # Linux and other OS
+        base = Path.home() / "Documents"
+    path = base / APP_NAME
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def save_question(question_data, filename='questions.json'):
     data_file = get_document_path() / filename
+    data_file = get_document_path() / filename
     try:
+        with open(data_file, 'r') as file:
         with open(data_file, 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
         data = {"questions": []}
     question_data["id"] = len(data["questions"]) + 1
     data["questions"].append(question_data)
+    with open(data_file, 'w') as file:
     with open(data_file, 'w') as file:
         json.dump(data, file, indent=4)
       
