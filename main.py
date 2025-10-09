@@ -2,17 +2,64 @@ import json
 import os
 import time
 import sys
+import shutil
+import requests
+import tempfile
+import subprocess
 import platform
 from pathlib import Path
 from rich.console import Console
 from rich import print
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.logging import RichHandler
 from rich.prompt import Prompt, Confirm
 import logging
 
 APP_NAME = "Question Creator"
 VERSION = "1.0.0"
+REPO = "chasebrubaker/create-questions"
+
+def get_platform_name() -> str:
+    system = platform.system().lower()
+    if system == 'windows':
+        return 'windows.exe'
+    elif system == 'darwin':  # macOS
+        return "macos "
+    else:  # Linux and other OS
+        return "linux"
+
+def get_latest_version() -> str:
+    url = f"https://api.github.com/repos/{REPO}/releases/latest"
+    r = requests.get(url)
+    r.raise_for_status()
+    return r.json()["tag_name"].lstrip("v")
+
+def download_binary(version, console: Console):
+    platform_name = get_platform_name()
+    url = f"https://github.com/{REPO}/releases/download/v{version}/{APP_NAME}-{platform_name}"
+    tmp_path = os.path.join(tempfile.gettempdir(), f"{APP_NAME}-{platform_name}")
+    with console.status(f"[bold green]Downloading {url}", spinner="dots"):
+        r = requests.get(url, stream=True)
+        r.raise_for_status()
+        with open(tmp_path, "wb") as f:
+            shutil.copyfileobj(r.raw, f)
+    os.chmod(tmp_path, 0o755)
+    return tmp_path
+
+def replace_and_restart(new_binary_path):
+    current_binary = sys.argv[0]
+    helper_script = os.path.join(tempfile.gettempdir(), "update_helper.py")
+    
+    with open(helper_script, "w") as f:
+        f.write(f"""
+import os, sys, time, shutil, subprocess
+time.sleep(1)
+os.remove(r"{current_binary}")
+shutil.move(r"{new_binary_path}", r"{current_binary}")
+subprocess.Popen([r"{current_binary}"])
+""")
+        subprocess.Popen([sys.executable, helper_script])
+        print("Updating...")
+        sys.exit(0)
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
