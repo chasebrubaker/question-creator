@@ -64,7 +64,7 @@ subprocess.Popen([r"{current_binary}"])
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def loading_bar(duration: int, console: Console, loading_text: str = "loading..."):    
+
 def loading_bar(duration: int, console: Console, loading_text: str = "loading..."):    
     with console.status(f"[bold green]{loading_text}", spinner="dots"):
         time.sleep(duration)
@@ -98,20 +98,19 @@ def get_document_path() -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
-def save_question(question_data, filename='questions.json'):
+def save_question(question_data, console: Console, filename='questions.json', ) -> None:
     data_file = get_document_path() / filename
     data_file = get_document_path() / filename
-    try:
-        with open(data_file, 'r') as file:
-        with open(data_file, 'r') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = {"questions": []}
-    question_data["id"] = len(data["questions"]) + 1
-    data["questions"].append(question_data)
-    with open(data_file, 'w') as file:
-    with open(data_file, 'w') as file:
-        json.dump(data, file, indent=4)
+    with console.status(f"[bold green]Saving question to {data_file}", spinner="dots") :
+        try:
+            with open(data_file, 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {"questions": []}
+        question_data["id"] = len(data["questions"]) + 1
+        data["questions"].append(question_data)
+        with open(data_file, 'w') as file:
+            json.dump(data, file, indent=4)
       
 
 
@@ -121,6 +120,10 @@ def main():
     log= logging.getLogger("rich")
     running = True
     try:
+        console.clear()
+        log.info(f"Starting {APP_NAME} v{VERSION}")
+        time.sleep(1)
+        console.clear()
         console.rule("[bold green] Welcome to the Question Creator!👋")
         print("To [bold red] exit [/ bold red], press Ctrl+C\n")
         while running:
@@ -131,7 +134,7 @@ def main():
                     default='y'
                 ).strip().lower()
             if confirmation == 'y' :
-                save_question(question_data)
+                save_question(question_data, console=console)
                 loading_bar(3, console, "Saving question...")
                 console.clear()
                 log.info("Question saved successfully!")
@@ -149,6 +152,8 @@ def main():
         
         print ("Goodbye!👋")
         time.sleep(2)
+        console.clear()
+        sys.exit(0)
         
 if __name__ == "__main__":
     main()
