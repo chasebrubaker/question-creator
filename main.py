@@ -14,9 +14,9 @@ from rich.logging import RichHandler
 from rich.prompt import Prompt, Confirm
 import logging
 
-APP_NAME = "Question Creator"
+APP_NAME = "question-creator"
 VERSION = "1.0.0"
-REPO = "chasebrubaker/create-questions"
+REPO = "chasebrubaker/question-creator"
 
 def get_platform_name() -> str:
     system = platform.system().lower()
@@ -60,6 +60,19 @@ subprocess.Popen([r"{current_binary}"])
         subprocess.Popen([sys.executable, helper_script])
         print("Updating...")
         sys.exit(0)
+        
+def self_update(console):
+    print(f"current version: {VERSION}")
+    latest = get_latest_version()
+    print(f"Latest versionL {latest}")
+
+    if latest == VERSION:
+        print("[bold green] Already up to date")
+        return
+    print("[bold]New version available!")
+    with console.status(f"[bold green]Downloading..."):
+        new_binary = download_binary(latest)
+    replace_and_restart(new_binary)
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -119,6 +132,8 @@ def main():
     logging.basicConfig(level="INFO", handlers=[RichHandler()])
     log= logging.getLogger("rich")
     running = True
+    if len(sys.argv) > 1 and  sys.argv[1] == "update":
+        self_update(console)
     try:
         console.clear()
         log.info(f"Starting {APP_NAME} v{VERSION}")
@@ -126,7 +141,10 @@ def main():
         console.clear()
         console.rule("[bold green] Welcome to the Question Creator!👋")
         print("To [bold red] exit [/ bold red], press Ctrl+C\n")
+        Prompt.ask("Press [bold blue]Enter[/bold blue] to continue...")
+        console.clear()
         while running:
+            console.rule("[bold green] Create a New Question")
             question_data = create_question()
             confirmation = Prompt.ask(
                     f"Question Data: {question_data} is this correct?  ",
