@@ -78,6 +78,29 @@ def self_update(console):
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def windows_terminal_is_Installed() -> bool:
+    try:
+        subprocess.run(["wt", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except Exception:
+        return False
+    
+def install_windows_terminal() :
+    confirm = input("Windows Terminal is not installed. Would you like to install it now? (y/n): ").strip().lower()
+    if confirm != 'n':
+        print("You need to have Windows Terminal installed to run this application properly.")
+        sys.exit(1)
+    print("Windows Terminal not found. Installing via winget...")
+    try:
+        subprocess.run(
+            ["winget", "install", "--id", "Microsoft.WindowsTerminal", "-e", "--silent"],
+            check=True
+        )
+        print("Windows Terminal installed successfully!")
+    except Exception:
+        print("Automatic install failed. Please install manually from the Microsoft Store:")
+        print("https://aka.ms/terminal")
+
 
 def loading_bar(duration: int, console: Console, loading_text: str = "loading..."):    
     with console.status(f"[bold green]{loading_text}", spinner="dots"):
@@ -142,6 +165,11 @@ def main(console=Console()):
     running = True
     if len(sys.argv) > 1 and  sys.argv[1] == "update":
         self_update(console)
+        
+    if get_platform_name() == "windows.exe":
+        if not windows_terminal_is_Installed():
+            install_windows_terminal()
+        clear_terminal()
     try:
         console.clear()
         log.info(f"Starting {APP_NAME} v{VERSION}")
