@@ -6,6 +6,7 @@ import shutil
 import requests
 import tempfile
 import subprocess
+import signal
 import platform
 from pathlib import Path
 from rich.console import Console
@@ -125,10 +126,17 @@ def save_question(question_data, console: Console, filename='questions.json', ) 
         with open(data_file, 'w') as file:
             json.dump(data, file, indent=4)
       
+def handle_interrupt(sig, frame):
+        console.clear()
+        loading_bar(2, console, "Exiting...")
+        
+        print ("Goodbye!👋")
+        time.sleep(2)
+        console.clear()
+        sys.exit(0)
 
 
-def main():
-    console = Console()
+def main(console=Console()):
     logging.basicConfig(level="INFO", handlers=[RichHandler()])
     log= logging.getLogger("rich")
     running = True
@@ -163,15 +171,16 @@ def main():
             else:
                 print("Let's try again.")  
             
-    except KeyboardInterrupt:
+    # except KeyboardInterrupt:
+    #     handle_interrupt(None, None)
+    except Exception as e:
+        log.error(f"An error occurred: {e}")
         console.clear()
-        running = False
-        loading_bar(2, console, "Exiting...")
-        
-        print ("Goodbye!👋")
-        time.sleep(2)
-        console.clear()
+        sys.exit(1)
+    finally:
         sys.exit(0)
         
 if __name__ == "__main__":
-    main()
+    console = Console()
+    signal.signal(signal.SIGINT, handle_interrupt)
+    main(console=console)
