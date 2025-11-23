@@ -2,9 +2,6 @@ import json
 import os
 import time
 import sys
-import shutil
-import requests
-import tempfile
 import subprocess
 import signal
 import platform
@@ -12,68 +9,11 @@ from pathlib import Path
 from rich.console import Console
 from rich import print
 from rich.logging import RichHandler
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Prompt
 import logging
 
 APP_NAME = "question-creator"
 VERSION = "1.0.0"
-REPO = "chasebrubaker/question-creator"
-
-def get_platform_name() -> str:
-    system = platform.system().lower()
-    if system == 'windows':
-        return 'windows.exe'
-    elif system == 'darwin':  # macOS
-        return "macos "
-    else:  # Linux and other OS
-        return "linux"
-
-def get_latest_version() -> str:
-    url = f"https://api.github.com/repos/{REPO}/releases/latest"
-    r = requests.get(url)
-    r.raise_for_status()
-    return r.json()["tag_name"].lstrip("v")
-
-def download_binary(version, console: Console):
-    platform_name = get_platform_name()
-    url = f"https://github.com/{REPO}/releases/download/v{version}/{APP_NAME}-{platform_name}"
-    tmp_path = os.path.join(tempfile.gettempdir(), f"{APP_NAME}-{platform_name}")
-    with console.status(f"[bold green]Downloading {url}", spinner="dots"):
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        with open(tmp_path, "wb") as f:
-            shutil.copyfileobj(r.raw, f)
-    os.chmod(tmp_path, 0o755)
-    return tmp_path
-
-def replace_and_restart(new_binary_path):
-    current_binary = sys.argv[0]
-    helper_script = os.path.join(tempfile.gettempdir(), "update_helper.py")
-    
-    with open(helper_script, "w") as f:
-        f.write(f"""
-import os, sys, time, shutil, subprocess
-time.sleep(1)
-os.remove(r"{current_binary}")
-shutil.move(r"{new_binary_path}", r"{current_binary}")
-subprocess.Popen([r"{current_binary}"])
-""")
-        subprocess.Popen([sys.executable, helper_script])
-        print("Updating...")
-        sys.exit(0)
-        
-def self_update(console):
-    print(f"current version: {VERSION}")
-    latest = get_latest_version()
-    print(f"Latest versionL {latest}")
-
-    if latest == VERSION:
-        print("[bold green] Already up to date")
-        return
-    print("[bold]New version available!")
-    with console.status(f"[bold green]Downloading..."):
-        new_binary = download_binary(latest)
-    replace_and_restart(new_binary)
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -111,17 +51,6 @@ def create_question():
     answer = Prompt.ask("Enter the answer")
     return {"question": question, "answer": answer}
 
-def get_document_path() -> Path:
-    system = platform.system().lower()
-    if system == 'windows':
-        base = Path(os.environ.get("USERPROFILE", "")) / "Documents"
-    elif system == 'darwin':  # macOS
-        base = Path.home() / "Documents"
-    else:  # Linux and other OS
-        base = Path.home() / "Documents"
-    path = base / APP_NAME
-    path.mkdir(parents=True, exist_ok=True)
-    return path
 
 def get_document_path() -> Path:
     system = platform.system().lower()
@@ -163,13 +92,6 @@ def main(console=Console()):
     logging.basicConfig(level="INFO", handlers=[RichHandler()])
     log= logging.getLogger("rich")
     running = True
-    if len(sys.argv) > 1 and  sys.argv[1] == "update":
-        self_update(console)
-        
-    if get_platform_name() == "windows.exe":
-        if not windows_terminal_is_Installed():
-            install_windows_terminal()
-        clear_terminal()
     try:
         console.clear()
         log.info(f"Starting {APP_NAME} v{VERSION}")
